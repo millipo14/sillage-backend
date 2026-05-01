@@ -1,0 +1,17 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "millipo14",
+    "database": "sillage_eclatant",
+    "host": "localhost",
+    "dialect": "postgres",
+    "timezone": "+03:00",
+    "dialectOptions": {
+      "useUTC": false,
+      "timezone": "Europe/Moscow"
+    },
+    "logging": false,
+    "schema": "sillage_eclatant",
+    "searchPath": "sillage_eclatant"
+  }
+}
