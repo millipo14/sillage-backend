@@ -52,7 +52,7 @@ const preferenceController = {
         try {
             const userId = req.user.userId;
 
-            const [brandPreferences, notePreferences] = await Promise.all([
+            const [brandPreferences, notePreferences, categoryPreferences ] = await Promise.all([
                 BrandPreference.findAll({
                     where: { customer_id: userId },
                     include: [{ model: Brand, as: 'brand' }]
@@ -60,12 +60,16 @@ const preferenceController = {
                 NotePreference.findAll({
                     where: { customer_id: userId },
                     include: [{ model: Note, as: 'note' }]
+                }),
+                CategoryPreference.findAll({
+                    where: { customer_id: userId }
                 })
             ]);
 
             res.json({
                 brand_preferences: brandPreferences,
-                note_preferences: notePreferences
+                note_preferences: notePreferences,
+                category_preferences: categoryPreferences
             });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -279,7 +283,7 @@ const preferenceController = {
             res.status(500).json({ error: error.message });
         }
     },
-    
+
     saveQuizResults: async (req, res) => {
         try {
             const userId = req.user.userId;

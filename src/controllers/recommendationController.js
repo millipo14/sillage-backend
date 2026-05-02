@@ -1,13 +1,18 @@
 const RecommendationService = require('../services/recommendationService');
 
 const recommendationController = {
-    // Получить рекомендации для пользователя
     getRecommendations: async (req, res) => {
         try {
-            const userId = req.user.userId;
+            const userId = req.user?.id || req.user?.userId;
+
+            if (!userId) {
+                console.error("ОШИБКА: ID пользователя не найден в req.user. Проверь authMiddleware.");
+                return res.status(401).json({ error: 'Пользователь не авторизован или токен не содержит ID' });
+            }
+
             const { limit = 10 } = req.query;
 
-            const recommendations = await RecommendationService.getHybridRecommendations(
+            const recommendations = await RecommendationService.getRecommendations(
                 userId,
                 parseInt(limit)
             );
@@ -18,45 +23,10 @@ const recommendationController = {
                 count: recommendations.length
             });
         } catch (error) {
+            console.error("ОШИБКА КОНТРОЛЛЕРА:", error.message);
             res.status(500).json({ error: error.message });
         }
     },
-
-    // Получить популярные ароматы (публичный)
-    getPopularPerfumes: async (req, res) => {
-        try {
-            const { limit = 10 } = req.query;
-
-            const popularPerfumes = await RecommendationService.getPopularPerfumes(
-                parseInt(limit)
-            );
-
-            res.json({
-                message: 'Популярные ароматы',
-                perfumes: popularPerfumes
-            });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    },
-
-    // Получить новинки (публичный)
-    getNewPerfumes: async (req, res) => {
-        try {
-            const { limit = 10 } = req.query;
-
-            const newPerfumes = await RecommendationService.getNewPerfumes(
-                parseInt(limit)
-            );
-
-            res.json({
-                message: 'Новинки',
-                perfumes: newPerfumes
-            });
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    }
 };
 
 module.exports = recommendationController;

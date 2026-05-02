@@ -103,7 +103,6 @@ app.get('/api/docs', async (req, res) => {
                 },
                 recommendations: {
                     getRecommendations: 'GET /api/recommendations (требуется токен)',
-                    popular: 'GET /api/recommendations/popular'
                 },
                 preferences: {
                     getOptions: 'GET /api/preferences/quiz-options (требуется токен)',
