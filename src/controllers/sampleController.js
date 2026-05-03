@@ -186,19 +186,26 @@ const sampleController = {
     // Получить пробники для подписки (доступные)
     getAvailableSamples: async (req, res) => {
         try {
-            const { limit = 50 } = req.query;
+            const { limit = 50, volume_ml } = req.query;
+
+            const where = {
+                stock: { [Op.gt]: 0 }
+            };
+
+            if (volume_ml) {
+                where.volume_ml = parseFloat(volume_ml);
+            }
 
             const samples = await Sample.findAll({
-                where: {
-                    stock: { [Op.gt]: 0 }
-                },
-                include: [
-                    {
-                        model: Perfume,
-                        as: 'perfume',
-                        include: ['brand', 'notes']
-                    }
-                ],
+                where,
+                include: [{
+                    model: Perfume,
+                    as: 'perfume',
+                    include: [
+                        { model: Brand, as: 'brand' },
+                        { model: Note, as: 'notes' }
+                    ]
+                }],
                 limit: parseInt(limit),
                 order: [['perfume_id', 'ASC']]
             });

@@ -1,5 +1,6 @@
 const { Subscription, SubscriptionPlan, User, SubscriptionSample, Sample, Perfume } = require('../models');
 const RecommendationService = require('../services/recommendationService');
+const { Op } = require('sequelize')
 
 const subscriptionController = {
     // Получить все тарифные планы
@@ -16,9 +17,10 @@ const subscriptionController = {
 
     // Создать подписку с разделением на рекомендованные и пользовательские пробники
     createSubscription: async (req, res) => {
+        console.log(req.body)
         try {
             const userId = req.user.userId;
-            const { plan_id, start_date, custom_samples = [] } = req.body;
+            const { plan_id, custom_samples, shipping_address, start_date } = req.body;
 
             // Проверка существующей активной подписки
             const existingSubscription = await Subscription.findOne({
@@ -36,9 +38,7 @@ const subscriptionController = {
 
             // Проверка тарифа
             const plan = await SubscriptionPlan.findByPk(plan_id);
-            if (!plan) {
-                return res.status(404).json({ error: 'Тариф не найден' });
-            }
+            if (!plan) return res.status(404).json({ error: 'Тариф не найден' });
 
             // Проверка количества пользовательских пробников
             if (custom_samples.length > plan.custom_samples) {
@@ -48,14 +48,21 @@ const subscriptionController = {
             }
 
             // Проверка доступности пользовательских пробников
-            for (const sampleId of custom_samples) {
-                const sample = await Sample.findByPk(sampleId, {
+            const finalCustomSampleIds = [];
+
+            for (const item of custom_samples) {
+                // Ищем пробник по perfume_id и объему из тарифа
+                const sample = await Sample.findOne({
+                    where: {
+                        perfume_id: item.perfume_id,
+                        volume_ml: item.volume_ml || plan.sample_volume_ml
+                    },
                     include: [{ model: Perfume, as: 'perfume' }]
                 });
 
                 if (!sample) {
                     return res.status(404).json({
-                        error: `Пробник ${sampleId} не найден`
+                        error: `Пробник для аромата с ID ${item.perfume_id} не найден в объеме ${plan.sample_volume_ml}мл`
                     });
                 }
 
@@ -64,6 +71,8 @@ const subscriptionController = {
                         error: `Пробник "${sample.perfume.name}" временно отсутствует`
                     });
                 }
+
+                finalCustomSampleIds.push(sample.sample_id); 
             }
 
             // Генерация рекомендованных пробников на основе предпочтений пользователя
@@ -92,33 +101,26 @@ const subscriptionController = {
             });
 
             // Создание записей о рекомендованных пробниках
-            for (const sampleId of recommendedSamples) {
+            for (const sId of recommendedSamples) {
                 await SubscriptionSample.create({
                     subscription_id: subscription.subscription_id,
-                    sample_id: sampleId,
+                    sample_id: sId,
                     sample_type: 'recommended',
                     status: 'selected'
                 });
-
-                // Уменьшение количества на складе
-                await Sample.decrement('stock', {
-                    where: { sample_id: sampleId }
-                });
+                await Sample.decrement('stock', { where: { sample_id: sId } });
             }
 
-            // Создание записей о пользовательских пробниках
-            for (const sampleId of custom_samples) {
+            // 4. ЗАПИСЬ В ТАБЛИЦУ SubscriptionSample (Пользовательские)
+            // Используем наш массив finalCustomSampleIds с реальными ID
+            for (const sId of finalCustomSampleIds) {
                 await SubscriptionSample.create({
                     subscription_id: subscription.subscription_id,
-                    sample_id: sampleId,
+                    sample_id: sId,
                     sample_type: 'custom',
                     status: 'selected'
                 });
-
-                // Уменьшение количества на складе
-                await Sample.decrement('stock', {
-                    where: { sample_id: sampleId }
-                });
+                await Sample.decrement('stock', { where: { sample_id: sId } });
             }
 
             // Обновление статуса пользователя
@@ -366,13 +368,49 @@ const subscriptionController = {
             });
 
             // Проверка доступности новых пользовательских пробников
-            for (const sampleId of custom_samples) {
-                const sample = await Sample.findByPk(sampleId);
-                if (!sample || sample.stock < 1) {
-                    return res.status(400).json({
-                        error: `Пробник ${sampleId} недоступен`
+            // for (const sampleId of custom_samples) {
+            //     const sample = await Sample.findByPk(sampleId);
+            //     if (!sample || sample.stock < 1) {
+            //         return res.status(400).json({
+            //             error: `Пробник ${sampleId} недоступен`
+            //         });
+            //     }
+            // }
+            const finalSampleIds = [];
+
+            for (const item of custom_samples) {
+                let sample;
+
+                if (typeof item === 'number' || typeof item === 'string') {
+                    sample = await Sample.findByPk(item);
+                }
+                else if (item && item.perfume_id) {
+                    sample = await Sample.findOne({
+                        where: {
+                            perfume_id: item.perfume_id,
+                            volume_ml: item.volume_ml || activePlan.sample_volume_ml
+                        }
                     });
                 }
+
+                if (!sample || sample.stock < 1) {
+                    return res.status(404).json({
+                        error: `Пробник для аромата ${item.perfume_id || item} недоступен или закончился`
+                    });
+                }
+                finalSampleIds.push(sample.sample_id);
+            }
+            for (const sId of finalSampleIds) {
+                await SubscriptionSample.create({
+                    subscription_id,
+                    sample_id: sId,
+                    sample_type: 'custom',
+                    status: 'selected'
+                });
+                await Sample.decrement('stock', {
+                    by: 1,
+                    where: { sample_id: sId }
+                });
             }
 
             // Создание новых пользовательских выборов
@@ -447,7 +485,7 @@ const subscriptionController = {
                 const samples = await Sample.findAll({
                     where: {
                         perfume_id: perfume.perfume_id,
-                        stock: { $gt: 0 }
+                        where: { stock: { [Op.gt]: 0 } }
                     },
                     include: [{
                         model: Perfume,
@@ -477,48 +515,49 @@ const subscriptionController = {
     // Вспомогательный метод: генерация рекомендованных пробников
     generateRecommendedSamples: async (userId, count, volume_ml) => {
         try {
-            // Получаем рекомендации ароматов
+            const { Op } = require('sequelize');
+
+            // 1. Пытаемся получить умные рекомендации
             const perfumeRecommendations = await RecommendationService.getHybridRecommendations(
                 userId,
-                count * 2  // Берем в 2 раза больше, чтобы было из чего выбирать
+                count * 2
             );
 
             const recommendedSampleIds = [];
+            const targetVolume = parseFloat(volume_ml);
 
-            // Ищем пробники нужного объема для рекомендованных ароматов
+            // 2. Ищем пробники нужного объема для рекомендованных парфюмов
             for (const perfume of perfumeRecommendations) {
                 if (recommendedSampleIds.length >= count) break;
 
                 const sample = await Sample.findOne({
                     where: {
-                        perfume_id: perfume.perfume_id,
-                        stock: { $gt: 0 }
+                        perfume_id: perfume.perfume_id || perfume.id, // на случай разных имен полей
+                        stock: { [Op.gt]: 0 },
+                        volume_ml: targetVolume
                     }
                 });
 
-                if (sample && !recommendedSampleIds.includes(sample.sample_id)) {
+                if (sample) {
                     recommendedSampleIds.push(sample.sample_id);
                 }
             }
 
-            // Если недостаточно рекомендованных, добавляем популярные
+            // 3. ЖЕСТКИЙ ДОБОР (если рекомендаций не хватило или их 0)
             if (recommendedSampleIds.length < count) {
-                const popularPerfumes = await RecommendationService.getPopularPerfumes(
-                    count - recommendedSampleIds.length
-                );
+                const remainingCount = count - recommendedSampleIds.length;
 
-                for (const perfume of popularPerfumes) {
-                    const sample = await Sample.findOne({
-                        where: {
-                            perfume_id: perfume.perfume_id,
-                            stock: { $gt: 0 }
-                        }
-                    });
+                const fallbackSamples = await Sample.findAll({
+                    where: {
+                        stock: { [Op.gt]: 0 },
+                        volume_ml: targetVolume,
+                        sample_id: { [Op.notIn]: recommendedSampleIds.length > 0 ? recommendedSampleIds : [-1] }
+                    },
+                    limit: remainingCount
+                });
 
-                    if (sample && !recommendedSampleIds.includes(sample.sample_id)) {
-                        recommendedSampleIds.push(sample.sample_id);
-                        if (recommendedSampleIds.length >= count) break;
-                    }
+                for (const s of fallbackSamples) {
+                    recommendedSampleIds.push(s.sample_id);
                 }
             }
 

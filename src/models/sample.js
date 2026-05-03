@@ -32,13 +32,16 @@ module.exports = (sequelize, DataTypes) => {
         },
         volume_ml: {
             type: DataTypes.DECIMAL(6, 2),
-            allowNull: false
+            allowNull: false,
+            validate: {
+                isIn: [[1.5, 2.0, 2.5]]
+            }
         },
-
         stock: {
             type: DataTypes.INTEGER,
-            defaultValue: 0
-        }
+            defaultValue: 0,
+            validate: { min: 0 }
+        },
     }, {
         sequelize,
         modelName: 'Sample',

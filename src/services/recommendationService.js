@@ -109,6 +109,9 @@ class RecommendationService {
             return [];
         }
     }
+    static async getHybridRecommendations(userId, count) {
+        return await this.getRecommendations(userId, count);
+    }
 }
 
 module.exports = RecommendationService;
