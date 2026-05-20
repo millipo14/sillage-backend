@@ -52,7 +52,7 @@ const userController = {
     login: async (req, res) => {
         try {
             const { email, password } = req.body;
-
+            console.log("DEBUG: Начало процесса входа для:", email); // ДОБАВЬ ЭТО
             const admin = admins.find(a => a.email === email)
             if (admin && admin.password === password) {
                 const token = jwt.sign(
@@ -68,20 +68,21 @@ const userController = {
             if (!user) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
+            console.log("DEBUG: Пользователь найден, проверяем пароль..."); // ДОБАВЬ ЭТО
 
             // Проверка пароля
             const isValidPassword = await bcrypt.compare(password, user.password_hash);
             if (!isValidPassword) {
                 return res.status(401).json({ error: 'Invalid credentials' });
             }
-
+            console.log("DEBUG: Пароль верен, генерируем токен..."); // ДОБАВЬ ЭТО
             // Создание JWT токена
             const token = jwt.sign(
                 { userId: user.customer_id, email: user.email, role: 'user' },
                 process.env.JWT_SECRET,
                 { expiresIn: '30d' }
             );
-
+            console.log("DEBUG: Токен успешно сгенерирован"); // ДОБАВЬ ЭТО
             res.json({
                 message: 'Login successful',
                 user: {
@@ -95,6 +96,7 @@ const userController = {
                 token
             });
         } catch (error) {
+            console.error("DEBUG: ОШИБКА В LOGIN:", error); // ВАЖНО: ЭТО ПОКАЖЕТ ТЕКСТ ОШИБКИ
             res.status(500).json({ error: error.message });
         }
     },
