@@ -99,9 +99,6 @@ const reviewController = {
                 });
             }
 
-            // Проверка, покупал ли пользователь этот аромат
-            // (опционально - можно добавить проверку через таблицу заказов)
-
             const review = await Review.create({
                 customer_id: userId,
                 perfume_id,

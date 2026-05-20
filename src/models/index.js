@@ -1,5 +1,5 @@
 'use strict';
-//инициализация всех моделей sequelize, автоматический сбор всех моделей из директории и настройка подключения к бд
+// Инициализация всех моделей sequelize, автоматический сбор всех моделей из директории и настройка подключения к бд
 const fs = require('fs');
 const path = require('path');
 const Sequelize = require('sequelize');
@@ -10,14 +10,14 @@ const config = require(__dirname + '/../config/config.json')[env];
 const db = {};
 
 let sequelize;
-if (config.use_env_variable) {//для продакшена (с переменной окружения)
+if (config.use_env_variable) {
   sequelize = new Sequelize(process.env[config.use_env_variable], config);
-} else {//для разработки
+} else {
   sequelize = new Sequelize(config.database, config.username, config.password, config);
 }
 
 fs
-  .readdirSync(__dirname)//чтение всех файлов в этой директории
+  .readdirSync(__dirname)
   .filter(file => {
     return (
       file.indexOf('.') !== 0 &&
@@ -26,18 +26,18 @@ fs
       file.indexOf('.test.js') === -1
     );
   })
-  .forEach(file => {//импорт модели из файла
+  .forEach(file => {
     const model = require(path.join(__dirname, file))(sequelize, Sequelize.DataTypes);
-    db[model.name] = model;//сохранение модели в объект db по имени модели
+    db[model.name] = model;
   });
 
-Object.keys(db).forEach(modelName => {//настройка ассоциаций между моделями
+Object.keys(db).forEach(modelName => {
   if (db[modelName].associate) {
     db[modelName].associate(db);
   }
 });
 
-db.sequelize = sequelize;//экземпляр подключения
-db.Sequelize = Sequelize;//библиотека Sequelize
+db.sequelize = sequelize;
+db.Sequelize = Sequelize;
 
 module.exports = db;

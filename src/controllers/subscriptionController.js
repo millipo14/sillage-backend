@@ -14,10 +14,56 @@ const subscriptionController = {
             res.status(500).json({ error: error.message });
         }
     },
+    getAllSubscriptions: async (req, res) => {
+        try {
 
+            const subscriptions = await Subscription.findAll({
+                include: [
+                    {
+                        model: User,
+                        as: 'customer',
+                        attributes: [
+                            'customer_id',
+                            'first_name',
+                            'last_name',
+                            'email'
+                        ]
+                    },
+                    {
+                        model: SubscriptionPlan,
+                        as: 'plan'
+                    },
+                    {
+                        model: SubscriptionSample,
+                        as: 'selected_samples',
+                        include: [
+                            {
+                                model: Sample,
+                                as: 'sample',
+                                include: [
+                                    {
+                                        model: Perfume,
+                                        as: 'perfume',
+                                        include: ['brand']
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
+                order: [['created_at', 'DESC']]
+            });
+
+            res.json(subscriptions);
+
+        } catch (error) {
+            res.status(500).json({
+                error: error.message
+            });
+        }
+    },
     // Создать подписку с разделением на рекомендованные и пользовательские пробники
     createSubscription: async (req, res) => {
-        console.log(req.body)
         try {
             const userId = req.user.userId;
             const { plan_id, custom_samples, shipping_address, start_date } = req.body;
@@ -72,7 +118,7 @@ const subscriptionController = {
                     });
                 }
 
-                finalCustomSampleIds.push(sample.sample_id); 
+                finalCustomSampleIds.push(sample.sample_id);
             }
 
             // Генерация рекомендованных пробников на основе предпочтений пользователя
@@ -91,10 +137,16 @@ const subscriptionController = {
             }
 
             // Создание подписки
+            const startDate = start_date ? new Date(start_date) : new Date();
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + 1);
+
             const subscription = await Subscription.create({
                 customer_id: userId,
                 plan_id,
-                start_date: start_date || new Date(),
+                shipping_address,
+                start_date: startDate,
+                end_date: endDate,
                 status: 'active',
                 payment_status: 'pending',
                 shipping_status: 'awaiting_shipment'
@@ -110,9 +162,6 @@ const subscriptionController = {
                 });
                 await Sample.decrement('stock', { where: { sample_id: sId } });
             }
-
-            // 4. ЗАПИСЬ В ТАБЛИЦУ SubscriptionSample (Пользовательские)
-            // Используем наш массив finalCustomSampleIds с реальными ID
             for (const sId of finalCustomSampleIds) {
                 await SubscriptionSample.create({
                     subscription_id: subscription.subscription_id,
@@ -140,7 +189,11 @@ const subscriptionController = {
                             include: [{
                                 model: Sample,
                                 as: 'sample',
-                                include: ['perfume']
+                                include: [{
+                                    model: Perfume,
+                                    as: 'perfume',
+                                    include: ['brand']
+                                }]
                             }]
                         }
                     ]
@@ -178,7 +231,11 @@ const subscriptionController = {
                         include: [{
                             model: Sample,
                             as: 'sample',
-                            include: ['perfume']
+                            include: [{
+                                model: Perfume,
+                                as: 'perfume',
+                                include: ['brand']
+                            }]
                         }]
                     }
                 ],
@@ -229,7 +286,11 @@ const subscriptionController = {
                         include: [{
                             model: Sample,
                             as: 'sample',
-                            include: ['perfume']
+                            include: [{
+                                model: Perfume,
+                                as: 'perfume',
+                                include: ['brand']
+                            }]
                         }]
                     }
                 ]
@@ -303,7 +364,7 @@ const subscriptionController = {
             // Обновление статуса пользователя
             if (status === 'cancelled' || status === 'paused') {
                 await User.update(
-                    { subscription_status: status },
+                    { subscription_status: status === 'active' ? 'active' : 'cancelled' },
                     { where: { customer_id: userId } }
                 );
             }
@@ -367,15 +428,6 @@ const subscriptionController = {
                 }
             });
 
-            // Проверка доступности новых пользовательских пробников
-            // for (const sampleId of custom_samples) {
-            //     const sample = await Sample.findByPk(sampleId);
-            //     if (!sample || sample.stock < 1) {
-            //         return res.status(400).json({
-            //             error: `Пробник ${sampleId} недоступен`
-            //         });
-            //     }
-            // }
             const finalSampleIds = [];
 
             for (const item of custom_samples) {
@@ -388,7 +440,7 @@ const subscriptionController = {
                     sample = await Sample.findOne({
                         where: {
                             perfume_id: item.perfume_id,
-                            volume_ml: item.volume_ml || activePlan.sample_volume_ml
+                            volume_ml: item.volume_ml || subscription.plan.sample_volume_ml
                         }
                     });
                 }
@@ -414,19 +466,19 @@ const subscriptionController = {
             }
 
             // Создание новых пользовательских выборов
-            for (const sampleId of custom_samples) {
-                await SubscriptionSample.create({
-                    subscription_id,
-                    sample_id: sampleId,
-                    sample_type: 'custom',
-                    status: 'selected'
-                });
+            // for (const sampleId of custom_samples) {
+            //     await SubscriptionSample.create({
+            //         subscription_id,
+            //         sample_id: sampleId,
+            //         sample_type: 'custom',
+            //         status: 'selected'
+            //     });
 
-                // Уменьшение количества на складе
-                await Sample.decrement('stock', {
-                    where: { sample_id: sampleId }
-                });
-            }
+            //     // Уменьшение количества на складе
+            //     await Sample.decrement('stock', {
+            //         where: { sample_id: sampleId }
+            //     });
+            // }
 
             // Обновляем рекомендованные пробники (каждый месяц новые рекомендации)
             await subscriptionController.updateRecommendedSamples(subscription_id, userId, subscription.plan);
@@ -516,8 +568,6 @@ const subscriptionController = {
     generateRecommendedSamples: async (userId, count, volume_ml) => {
         try {
             const { Op } = require('sequelize');
-
-            // 1. Пытаемся получить умные рекомендации
             const perfumeRecommendations = await RecommendationService.getHybridRecommendations(
                 userId,
                 count * 2
@@ -526,13 +576,12 @@ const subscriptionController = {
             const recommendedSampleIds = [];
             const targetVolume = parseFloat(volume_ml);
 
-            // 2. Ищем пробники нужного объема для рекомендованных парфюмов
             for (const perfume of perfumeRecommendations) {
                 if (recommendedSampleIds.length >= count) break;
 
                 const sample = await Sample.findOne({
                     where: {
-                        perfume_id: perfume.perfume_id || perfume.id, // на случай разных имен полей
+                        perfume_id: perfume.perfume_id || perfume.id, 
                         stock: { [Op.gt]: 0 },
                         volume_ml: targetVolume
                     }
@@ -543,7 +592,6 @@ const subscriptionController = {
                 }
             }
 
-            // 3. ЖЕСТКИЙ ДОБОР (если рекомендаций не хватило или их 0)
             if (recommendedSampleIds.length < count) {
                 const remainingCount = count - recommendedSampleIds.length;
 
@@ -568,7 +616,7 @@ const subscriptionController = {
         }
     },
 
-    // Вспомогательный метод: обновление рекомендованных пробников
+    // Обновление рекомендованных пробников
     updateRecommendedSamples: async (subscription_id, userId, plan) => {
         try {
             // Возвращаем старые рекомендованные пробники на склад
@@ -640,7 +688,11 @@ const subscriptionController = {
                         include: [{
                             model: Sample,
                             as: 'sample',
-                            include: ['perfume']
+                            include: [{
+                                model: Perfume,
+                                as: 'perfume',
+                                include: ['brand']
+                            }]
                         }]
                     }
                 ]

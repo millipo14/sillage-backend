@@ -3,9 +3,7 @@ const bcrypt = require('bcryptjs');
 
 module.exports = {
     async up(queryInterface, Sequelize) {
-        // Установка схемы (если используешь PostgreSQL)
         await queryInterface.sequelize.query('SET search_path TO sillage_eclatant');
-
         const password_hash = await bcrypt.hash('password123', 10);
 
         const emails = [
@@ -15,7 +13,6 @@ module.exports = {
             'daniil_bort@mail.com',
             'olmit@yandex.ru'
         ];
-
         // Проверка существующих пользователей
         const existingUsers = await queryInterface.sequelize.query(
             `SELECT email FROM customers WHERE email IN (${emails.map(e => `'${e}'`).join(',')})`,
@@ -47,13 +44,6 @@ module.exports = {
                 });
             }
         });
-
-        if (usersToInsert.length > 0) {
-            await queryInterface.bulkInsert('customers', usersToInsert, {});
-            console.log(`Добавлено ${usersToInsert.length} новых пользователей`);
-        } else {
-            console.log('Все пользователи сидера уже в базе');
-        }
     },
 
     async down(queryInterface, Sequelize) {

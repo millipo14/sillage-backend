@@ -6,5 +6,6 @@ router.post('/', authMiddleware, orderController.createOrder);
 router.get('/', authMiddleware, orderController.getUserOrders);
 router.get('/:id', authMiddleware, orderController.getOrderDetails);
 router.delete('/:id', authMiddleware, orderController.deleteOrder);
+router.patch('/:id/status', authMiddleware, orderController.updateOrderStatus)
 
 module.exports = router;

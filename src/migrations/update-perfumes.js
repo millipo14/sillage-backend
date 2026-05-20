@@ -79,15 +79,9 @@ module.exports = {
       SET image_url = '/images/perfumes/tiziana-terenzi/cassiopea.webp' 
       WHERE name = 'Cassiopea' AND brand_id = (SELECT brand_id FROM brands WHERE name = 'Tiziana Terenzi')
     `);
-
-        //     await queryInterface.sequelize.query(`
-        //   UPDATE perfumes 
-        //   SET image_url = '/images/perfumes/tiziana-terenzi/moro-di-venezia.webp' 
-        //   WHERE name = 'Moro di Venezia' AND brand_id = (SELECT brand_id FROM brands WHERE name = 'Tiziana Terenzi')
-        // `);
     },
 
     async down(queryInterface, Sequelize) {
-        //здесь можно вернуть старые пути (но необязательно оставить пустым)
+
     }
 };

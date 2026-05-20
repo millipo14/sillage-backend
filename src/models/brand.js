@@ -1,18 +1,17 @@
 'use strict';
-const { Model } = require('sequelize'); //импорт абстракции, которая представляет таблицу бд
+const { Model } = require('sequelize');
 
-module.exports = (sequelize, DataTypes) => {//экспорт функции, принимает подключение к бд и типы данных
+module.exports = (sequelize, DataTypes) => {
     class Brand extends Model {
-        static associate(models) {//метод связей м/у моделями
-            Brand.hasMany(models.Perfume, { //установка связи (здесь один ко многим - у одного бренда много парфюмов)
-                foreignKey: 'brand_id', //внешний ключ
-                as: 'perfumes' //псевдоним для доступа
+        static associate(models) {
+            Brand.hasMany(models.Perfume, { 
+                foreignKey: 'brand_id', 
+                as: 'perfumes' 
             });
         }
     }
 
-    Brand.init({//инициализация модели
-        //определение полей
+    Brand.init({
         brand_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true, field: 'brand_id' },
         name: { type: DataTypes.STRING, allowNull: false },
         description: DataTypes.TEXT,
@@ -21,7 +20,7 @@ module.exports = (sequelize, DataTypes) => {//экспорт функции, п�
         logo_url: DataTypes.STRING,
         created_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
         updated_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW }
-    }, {//настройки модели
+    }, {
         sequelize,
         modelName: 'Brand',
         tableName: 'brands',

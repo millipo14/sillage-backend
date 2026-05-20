@@ -53,6 +53,10 @@ module.exports = (sequelize, DataTypes) => {
         },
         payment_status: DataTypes.STRING(50),
         shipping_status: DataTypes.STRING(50),
+        shipping_address: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
         created_at: {
             type: DataTypes.DATE,
             defaultValue: DataTypes.NOW

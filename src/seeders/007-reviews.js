@@ -19,11 +19,6 @@ module.exports = {
             { type: Sequelize.QueryTypes.SELECT }
         );
 
-        if (users.length === 0 || perfumes.length === 0) {
-            console.log('Ошибка: Пользователи или парфюмы не найдены. Сначала запустите их сидеры!');
-            return;
-        }
-
         // сопоставление email и ID
         const userMap = {};
         users.forEach(u => userMap[u.email] = u.customer_id);
@@ -60,7 +55,6 @@ module.exports = {
         ];
 
         await queryInterface.bulkInsert('reviews', reviewsToInsert, {});
-        console.log(`Добавлено ${reviewsToInsert.length} отзывов`);
     },
 
     async down(queryInterface, Sequelize) {

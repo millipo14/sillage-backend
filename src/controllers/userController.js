@@ -1,4 +1,4 @@
-const { User, Order, Subscription } = require('../models');
+const { User, Order, Subscription, Note, CategoryPreference, Perfume, OrderItem } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { admins } = require('../config/admins');
@@ -8,17 +8,14 @@ const userController = {
     register: async (req, res) => {
         try {
             const { email, password, first_name, last_name, phone } = req.body;
-
             // Проверка существования пользователя
             const existingUser = await User.findOne({ where: { email } });
             if (existingUser) {
                 return res.status(400).json({ error: 'User already exists' });
             }
-
             // Хеширование пароля
             const password_hash = await bcrypt.hash(password, 10);
-
-            // Создание пользователя
+            // создание пользователя
             const user = await User.create({
                 email,
                 password_hash,
@@ -110,7 +107,7 @@ const userController = {
                 attributes: { exclude: ['password_hash'] },
                 include: [
                     { model: Order, as: 'orders', limit: 5, order: [['order_date', 'DESC']] },
-                    { model: Subscription, as: 'subscriptions' }
+                    { model: Subscription, as: 'subscription' }
                 ]
             });
 
@@ -126,7 +123,33 @@ const userController = {
     getAllUsers: async (req, res) => {
         try {
             const users = await User.findAll({
-                attributes: ['customer_id', 'first_name', 'last_name', 'email', 'loyalty_points', 'created_at']
+                attributes: ['customer_id', 'first_name', 'last_name', 'email', 'phone', 'target_gender', 'created_at', 'subscription_status'],
+                include: [
+                    {
+                        model: Order,
+                        as: 'orders',
+                        include: [
+                            {
+                                model: OrderItem,
+                                as: 'items',
+                                include: [
+                                    { model: Perfume, as: 'perfume' }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        model: Note,
+                        as: 'preferred_note',
+                        attributes: ['note_name'],
+                        through: { attributes: [] }
+                    },
+                    {
+                        model: CategoryPreference,
+                        as: 'categoryPreferences',
+                        attributes: ['category_name']
+                    }
+                ]
             });
             res.json(users);
         } catch (error) {

@@ -52,7 +52,7 @@ const preferenceController = {
         try {
             const userId = req.user.userId;
 
-            const [brandPreferences, notePreferences, categoryPreferences ] = await Promise.all([
+            const [brandPreferences, notePreferences, categoryPreferences] = await Promise.all([
                 BrandPreference.findAll({
                     where: { customer_id: userId },
                     include: [{ model: Brand, as: 'brand' }]
@@ -239,34 +239,28 @@ const preferenceController = {
     },
 
 
-    // Получить опции специально для квиза (с сохранением ID нот)
+    // Получить опции для квиза 
     getQuizOptions: async (req, res) => {
         try {
-            // 1. ПОЛУЧАЕМ И ОЧИЩАЕМ КАТЕГОРИИ
             const rawCategories = await Perfume.findAll({
                 attributes: [[Sequelize.fn('DISTINCT', Sequelize.col('perfume_category')), 'category']],
                 raw: true
             });
 
-            // Разбиваем сложные названия (н-р "шипровые цветочные" -> ["шипровые", "цветочные"])
             const flatCategories = rawCategories
                 .map(c => c.category)
                 .filter(Boolean)
-                .flatMap(c => c.toLowerCase().split(/[\s-]+/)); // разбиваем по пробелу или дефису
+                .flatMap(c => c.toLowerCase().split(/[\s-]+/));
 
-            // Оставляем только уникальные и красивые названия (убираем "мускусные", если это просто добавка)
             const uniqueCategories = [...new Set(flatCategories)].filter(word =>
-                word.length > 3 && !['свежие', 'пряные'].includes(word)
+                word.length > 3 && !['древесно'].includes(word)
             );
-
-            // 2. ПОЛУЧАЕМ ТОЛЬКО УНИКАЛЬНЫЕ НОТЫ ПО ИМЕНИ
-            // Группировка по имени решает проблему дубликатов
             const notes = await Note.findAll({
                 attributes: [
-                    [Sequelize.fn('MIN', Sequelize.col('note_id')), 'id'], // Берем любой ID для этой ноты
+                    [Sequelize.fn('MIN', Sequelize.col('note_id')), 'id'],
                     'note_name'
                 ],
-                group: ['note_name'], // ГРУППИРОВКА ПО ИМЕНИ
+                group: ['note_name'],
                 order: [['note_name', 'ASC']],
                 raw: true
             });
@@ -279,24 +273,20 @@ const preferenceController = {
                 }))
             });
         } catch (error) {
-            console.error('Ошибка в getQuizOptions:', error);
             res.status(500).json({ error: error.message });
         }
     },
-
+    // Сохранение результатов квиза
     saveQuizResults: async (req, res) => {
         try {
             const userId = req.user.userId;
             const { gender, categories, notes } = req.body;
 
-            // 1. Обновляем гендер у пользователя
-            // На фронте это будет результат 1-го шага (male/female/unisex/any)
             await User.update(
                 { target_gender: gender },
                 { where: { customer_id: userId } }
             );
 
-            // 2. Обновляем категории
             await CategoryPreference.destroy({ where: { customer_id: userId } });
             if (categories && categories.length > 0) {
                 const categoryRecords = categories.map(catName => ({
@@ -306,7 +296,6 @@ const preferenceController = {
                 await CategoryPreference.bulkCreate(categoryRecords);
             }
 
-            // 3. Обновляем ноты
             await NotePreference.destroy({ where: { customer_id: userId } });
             if (notes && notes.length > 0) {
                 const noteRecords = notes.map(noteId => ({

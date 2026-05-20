@@ -1,6 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
-const bcrypt = require('bcryptjs'); //библиотека для безопасного хеширования паролей
+const bcrypt = require('bcryptjs'); 
 
 module.exports = (sequelize, DataTypes) => {
     class User extends Model {
@@ -9,21 +9,25 @@ module.exports = (sequelize, DataTypes) => {
                 foreignKey: 'customer_id',
                 as: 'orders'
             });
-            User.hasMany(models.Subscription, {//пользователь может иметь много подписок
+            User.hasOne(models.Subscription, {
                 foreignKey: 'customer_id',
-                as: 'subscriptions'
+                as: 'subscription'
             });
             User.hasMany(models.Review, { //пользователь может иметь много отзывов
                 foreignKey: 'customer_id',
                 as: 'reviews'
             });
-            User.belongsToMany(models.Brand, { //пользователь может предпочитать много брендов
+            User.hasMany(models.CategoryPreference, {
+                foreignKey: 'customer_id',
+                as: 'categoryPreferences'
+            });
+            User.belongsToMany(models.Brand, {
                 through: 'brand_preferences',
                 as: 'preferred_brands',
                 foreignKey: 'customer_id',
                 otherKey: 'brand_id'
             });
-            User.belongsToMany(models.Note, { //пользователь может предпочитать много брендов
+            User.belongsToMany(models.Note, {
                 through: 'note_preferences',
                 as: 'preferred_note',
                 foreignKey: 'customer_id',
@@ -95,9 +99,9 @@ module.exports = (sequelize, DataTypes) => {
         },
         subscription_status: {
             type: DataTypes.STRING(50),
-            defaultValue: 'inactive',
+            defaultValue: 'none',
             validate: {
-                isIn: [['active', 'inactive', 'paused', 'cancelled']]
+                isIn: [['none', 'active', 'inactive']]
             }
         },
         created_at: {
@@ -106,7 +110,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         target_gender: {
             type: DataTypes.STRING,
-            allowNull: true // по умолчанию пусто, пока не пройден квиз
+            allowNull: true // пусто, пока не пройден квиз
         }
     }, {
         sequelize,

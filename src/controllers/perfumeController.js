@@ -2,7 +2,7 @@ const { Perfume, Brand, Note, PerfumeVolume, Sequelize, Review } = require('../m
 const { Op } = require('sequelize');
 
 const perfumeController = {
-    // 1. ПОЛУЧЕНИЕ ВСЕХ ПАРФЮМОВ С ФИЛЬТРАЦИЕЙ
+    // Получение всех парфюмов
     getAllPerfumes: async (req, res) => {
         try {
             const {
@@ -41,7 +41,7 @@ const perfumeController = {
                 };
             }
 
-            // Сначала получаем ВСЕ ароматы с фильтрами
+            // Отфильтрованные ароматы
             const allPerfumes = await Perfume.findAll({
                 attributes: {
                     include: [
@@ -137,12 +137,11 @@ const perfumeController = {
             });
 
         } catch (error) {
-            console.error(error);
             res.status(500).json({ error: error.message });
         }
     },
 
-    // ДИНАМИЧЕСКИЕ ОПЦИИ ДЛЯ ФИЛЬТРОВ
+    // Опции для фильтров
     getFilterOptions: async (req, res) => {
         try {
             const categories = await Perfume.findAll({
@@ -166,12 +165,11 @@ const perfumeController = {
                 notes: notes.map(n => n.note_name).sort()
             });
         } catch (error) {
-            console.error(error);
             res.status(500).json({ error: error.message });
         }
     },
 
-    // ПОЛУЧЕНИЕ ПО ID
+    // Получение по ID
     getPerfumeById: async (req, res) => {
         try {
             const perfume = await Perfume.findByPk(req.params.id, {
@@ -189,7 +187,7 @@ const perfumeController = {
         }
     },
 
-    //ПОИСК
+    //Поиск
     searchPerfumes: async (req, res) => {
         try {
             const { q } = req.query;
@@ -212,7 +210,7 @@ const perfumeController = {
         }
     },
 
-    // СОЗДАНИЕ
+    // Создание
     createPerfume: async (req, res) => {
         try {
             const { volumes, ...perfumeData } = req.body;
@@ -241,7 +239,7 @@ const perfumeController = {
         }
     },
 
-    // ОБНОВЛЕНИЕ
+    // Обновление
     updatePerfume: async (req, res) => {
         try {
             const { volumes, ...perfumeData } = req.body;
@@ -279,7 +277,7 @@ const perfumeController = {
         }
     },
 
-    // УДАЛЕНИЕ
+    // Удаление
     deletePerfume: async (req, res) => {
         try {
             const perfume = await Perfume.findByPk(req.params.id);

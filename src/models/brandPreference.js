@@ -15,14 +15,14 @@ module.exports = (sequelize, DataTypes) => {
         }
     }
 
-    BrandPreference.init({//первичный ключ составной - из customer_id и brand_id
+    BrandPreference.init({
         customer_id: {
             type: DataTypes.INTEGER,
             primaryKey: true,
             allowNull: false,
             references: {
-                model: 'customers',//таблица
-                key: 'customer_id'//поле таблицы
+                model: 'customers',
+                key: 'customer_id'
             }
         },
         brand_id: {

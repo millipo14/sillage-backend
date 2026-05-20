@@ -1,7 +1,7 @@
 const { Order, OrderItem, Perfume, User, PerfumeVolume } = require('../models');
 
 const orderController = {
-    // Создать заказ
+    // Создание заказа
     createOrder: async (req, res) => {
         try {
             const userId = req.user.userId;
@@ -19,8 +19,6 @@ const orderController = {
                         volume_ml: item.volume
                     }
                 });
-                // ЛОГ ДЛЯ ПРОВЕРКИ
-                console.log(`Perfume ID: ${item.perfume_id}, Volume: ${item.volume}ml, Found Price: ${variant?.price}`);
 
                 if (!variant || variant.price === undefined || variant.price === null) {
                     return res.status(400).json({
@@ -34,7 +32,8 @@ const orderController = {
                     perfume_id: item.perfume_id,
                     product_type: item.product_type || 'perfume',
                     quantity: item.quantity,
-                    price_at_purchase: variant.price
+                    price_at_purchase: variant.price,
+                    volume: item.volume
                 });
             }
 
@@ -88,7 +87,16 @@ const orderController = {
             const order = await Order.findOne({
                 where: { order_id: id, customer_id: userId },
                 include: [
-                    { model: OrderItem, as: 'items', include: ['perfume'] },
+                    {
+                        model: OrderItem, as: 'items', include: [{
+                            model: Perfume,
+                            as: 'perfume',
+                            include: [{
+                                model: PerfumeVolume,
+                                as: 'volumes'
+                            }]
+                        }]
+                    },
                     { model: User, as: 'customer', attributes: ['first_name', 'last_name', 'email'] }
                 ]
             });
@@ -115,7 +123,7 @@ const orderController = {
 
             const { count, rows } = await Order.findAndCountAll({
                 where,
-                include: [{ model: OrderItem, as: 'items' }],
+                include: [{ model: OrderItem, as: 'items', include: [{ model: Perfume, as: 'perfume' }] }],
                 order: [['order_date', 'DESC']],
                 limit: parseInt(limit),
                 offset: parseInt(offset)
@@ -131,30 +139,48 @@ const orderController = {
             res.status(500).json({ error: error.message });
         }
     },
-    //удалить заказ
+    // Удалить заказ
     deleteOrder: async (req, res) => {
         try {
             const { id } = req.params;
             const userId = req.user.userId;
 
-            // Ищем заказ, принадлежащий именно этому пользователю
-            const order = await Order.findOne({ where: { order_id: id, customer_id: userId } });
+            const order = await Order.findByPk(id);
 
             if (!order) {
                 return res.status(404).json({ error: 'Заказ не найден' });
             }
-
-            // Удаляем связанные элементы вручную (если в миграциях не стоит CASCADE)
             await OrderItem.destroy({ where: { order_id: id } });
 
-            // Удаляем сам заказ
             await order.destroy();
 
             res.json({ message: 'Заказ успешно удален' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
-    }
+    },
+    // Обновить статус заказа (для админки)
+    updateOrderStatus: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { status } = req.body;
+
+            const order = await Order.findByPk(id);
+
+            if (!order) {
+                return res.status(404).json({ error: 'Заказ не найден' });
+            }
+
+            await order.update({ status });
+
+            res.json({
+                message: 'Статус заказа успешно обновлен',
+                order: { order_id: id, status }
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    },
 };
 
 module.exports = orderController;

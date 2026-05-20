@@ -41,7 +41,9 @@ class RecommendationService {
                 user?.target_gender && user.target_gender !== 'any'
                     ? user.target_gender === 'male'
                         ? ['male', 'unisex']
-                        : ['female', 'unisex']
+                        : user.target_gender === 'unisex'
+                            ? ['unisex']
+                            : ['female', 'unisex']
                     : null;
 
             const scored = perfumes.map(p => {

@@ -23,7 +23,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         category_name: {
             type: DataTypes.STRING,
-            primaryKey: true, // Делаем составной ключ, чтобы нельзя было дублировать
+            primaryKey: true,
             allowNull: false
         }
     }, {

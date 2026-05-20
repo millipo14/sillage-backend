@@ -108,7 +108,23 @@ app.get('/api/docs', async (req, res) => {
                     getOptions: 'GET /api/preferences/quiz-options (требуется токен)',
                     saveQuiz: 'POST /api/preferences/quiz (требуется токен)',
                     getUserPrefs: 'GET /api/preferences (требуется токен)'
-                }
+                },
+                orders: {
+                    create: 'POST /api/orders (требуется токен)',
+                    getUserOrders: 'GET /api/orders (требуется токен)',
+                    getById: 'GET /api/orders/:id (требуется токен)',
+                    updateStatus: 'PATCH /api/orders/:id/status (админ)',
+                    delete: 'DELETE /api/orders/:id (админ)'
+                },
+                admin: {
+                    reviewsCheck: 'GET /api/admin/reviews-check',
+                    analytics: {
+                        stats: 'GET /api/admin/analytics/stats?period=day|week|month',
+                        revenue: 'GET /api/admin/analytics/revenue?period=day|week|month',
+                        genders: 'GET /api/admin/analytics/genders',
+                        topPerfumes: 'GET /api/admin/analytics/top-perfumes?period=day|week|month'
+                    }
+                },
             }
         });
     } catch (error) {

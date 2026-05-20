@@ -29,7 +29,11 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         quantity: { type: DataTypes.INTEGER, defaultValue: 1 },
-        price_at_purchase: { type: DataTypes.DECIMAL(10, 2), allowNull: false }
+        price_at_purchase: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
+        volume: {
+            type: DataTypes.INTEGER,
+            allowNull: false
+        },
     }, {
         sequelize,
         modelName: 'OrderItem',

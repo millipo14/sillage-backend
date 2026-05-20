@@ -14,5 +14,6 @@ router.get('/samples', subscriptionController.getSubscriptionSamples);
 router.get('/recommended', subscriptionController.getRecommendedSamples);
 router.put('/:subscription_id/status', subscriptionController.updateSubscriptionStatus);
 router.post('/:subscription_id/samples', subscriptionController.selectSamples);
+router.get('/admin/all', subscriptionController.getAllSubscriptions)
 
 module.exports = router;
