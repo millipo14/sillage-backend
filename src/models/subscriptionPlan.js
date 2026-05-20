@@ -50,6 +50,7 @@ module.exports = (sequelize, DataTypes) => {
         modelName: 'SubscriptionPlan',
         tableName: 'subscription_plans',
         timestamps: false,
+        schema: 'sillage_eclatant',
         underscored: true
     });
 

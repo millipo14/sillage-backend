@@ -47,6 +47,7 @@ module.exports = (sequelize, DataTypes) => {
         modelName: 'Sample',
         tableName: 'samples',
         timestamps: false,
+        schema: 'sillage_eclatant',
         underscored: true
     });
 

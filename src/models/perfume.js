@@ -44,6 +44,7 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'perfumes',
         timestamps: true,
         createdAt: 'created_at',
+        schema: 'sillage_eclatant',
         updatedAt: true,
         underscored: true,
         freezeTableName: true

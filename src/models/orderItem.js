@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
         sequelize,
         modelName: 'OrderItem',
         tableName: 'order_items',
+        schema: 'sillage_eclatant',
         timestamps: false,
         underscored: true
     });

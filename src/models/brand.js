@@ -24,6 +24,7 @@ module.exports = (sequelize, DataTypes) => {
         sequelize,
         modelName: 'Brand',
         tableName: 'brands',
+        schema: 'sillage_eclatant',
         timestamps: true,
         createdAt: 'created_at',
         updatedAt: 'updated_at',

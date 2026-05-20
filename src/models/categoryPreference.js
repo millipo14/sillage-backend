@@ -30,6 +30,7 @@ module.exports = (sequelize, DataTypes) => {
         sequelize,
         modelName: 'CategoryPreference',
         tableName: 'category_preferences',
+        schema: 'sillage_eclatant',
         timestamps: false,
         underscored: true
     });

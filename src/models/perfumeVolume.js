@@ -19,6 +19,7 @@ module.exports = (sequelize, DataTypes) => {
             modelName: 'PerfumeVolume',
             tableName: 'perfume_volumes',
             underscored: true,
+            schema: 'sillage_eclatant',
             timestamps: true,
         }
     );

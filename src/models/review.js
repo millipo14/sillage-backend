@@ -38,6 +38,7 @@ module.exports = (sequelize, DataTypes) => {
         timestamps: true,
         createdAt: 'created_at',
         updatedAt: false,
+        schema: 'sillage_eclatant',
         underscored: true
     });
 
