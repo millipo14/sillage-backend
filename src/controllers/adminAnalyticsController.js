@@ -163,12 +163,23 @@ const adminAnalyticsController = {
     // Распределение по полу
     getGenderStats: async (req, res) => {
         try {
+            const period = req.query.period || 'week';
+            const dateFilter = getDateFilter(period);
+
             const stats = await OrderItem.findAll({
-                include: [{
-                    model: Perfume,
-                    as: 'perfume',
-                    attributes: []
-                }],
+                include: [
+                    {
+                        model: Order,
+                        as: 'order',
+                        where: { order_date: dateFilter },
+                        attributes: []
+                    },
+                    {
+                        model: Perfume,
+                        as: 'perfume',
+                        attributes: []
+                    }
+                ],
                 attributes: [
                     [col('perfume.gender'), 'gender'],
                     [fn('SUM', col('quantity')), 'count']
