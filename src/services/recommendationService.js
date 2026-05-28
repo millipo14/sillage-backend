@@ -100,6 +100,7 @@ class RecommendationService {
                             ? allowedGenders.includes(p.gender)
                             : true
                     )
+                    .sort(() => 0.5 - Math.random())
                     .slice(0, limit);
 
                 return fallback;
