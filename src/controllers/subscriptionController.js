@@ -1,6 +1,7 @@
 const { Subscription, SubscriptionPlan, User, SubscriptionSample, Sample, Perfume } = require('../models');
 const RecommendationService = require('../services/recommendationService');
-const { Op } = require('sequelize')
+const Sequelize = require('sequelize')
+const { Op } = Sequelize
 
 const subscriptionController = {
     // Получить все тарифные планы
@@ -599,8 +600,13 @@ const subscriptionController = {
                     where: {
                         stock: { [Op.gt]: 0 },
                         volume_ml: targetVolume,
-                        sample_id: { [Op.notIn]: recommendedSampleIds.length > 0 ? recommendedSampleIds : [-1] }
+                        sample_id: {
+                            [Op.notIn]: recommendedSampleIds.length > 0
+                                ? recommendedSampleIds
+                                : [-1]
+                        }
                     },
+                    order: sequelize.random(),
                     limit: remainingCount
                 });
 
